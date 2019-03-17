@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#l1 {
+  position: absolute;
+  top: 10px;
+  left: 220px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l2 {
+  position: absolute;
+  top: 330px;
+  left: 120px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l3 {
+  position: absolute;
+  top: 350px;
+  left: 180px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l4 {
+  position: absolute;
+  top: 350px;
+  left: 250px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l5 {
+  position: absolute;
+  top: 340px;
+  left: 320px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l6 {
+  position: absolute;
+  top: 480px;
+  left: 60px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l7 {
+  position: absolute;
+  top: 500px;
+  left: 130px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l8 {
+  position: absolute;
+  top: 520px;
+  left: 200px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l9 {
+  position: absolute;
+  top: 510px;
+  left: 280px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+
+#l10 {
+  position: absolute;
+  top: 500px;
+  left: 350px;
+  border-radius: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
+}
+</style>
+</head>
+
+<body>
+<div id='l1'></div>
+<div id='l2'></div>
+<div id='l3'></div>
+<div id='l4'></div>
+<div id='l5'></div>
+<div id='l6'></div>
+<div id='l7'></div>
+<div id='l8'></div>
+<div id='l9'></div>
+<div id='l10'></div>
+<button id="power">Power</button>
+<img src="https://i.imgur.com/wOkxldK.png">
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+function SpotLight(id) {
+  var name = '#' + id;
+  var status = false;
+  var timeset;
+
+  var HSL = function() {
+  	let H = Math.floor(Math.random() * 360);
+    let S = Math.floor(Math.random() * 100);
+    let L = Math.floor(Math.random() * 100);
+  	return "hsl(" + H + "," + S + "%," + L + "%)";
+	}
+
+  var toggle = function() {
+    status = !status;
+
+    if (status) {
+    	$(name).css ('background-color', HSL());
+      //$(name).text (name + ' is on');
+    } else {
+    	$(name).css ('background-color', HSL());
+      //$(name).text (name + ' is off');
+    }
+  };
+
+  this.on = function() {
+  	timeset = setInterval (function() {toggle();}, 500);
+  }
+
+  this.off = function() {
+  	clearInterval(timeset);
+    $(name).css ('background-color', "lightgray");
+  }
+}
+
+var power = false;
+var l0 = new SpotLight('l0');
+var l1 = new SpotLight('l1');
+var l2 = new SpotLight('l2');
+var l3 = new SpotLight('l3');
+var l4 = new SpotLight('l4');
+var l5 = new SpotLight('l5');
+var l6 = new SpotLight('l6');
+var l7 = new SpotLight('l7');
+var l8 = new SpotLight('l8');
+var l9 = new SpotLight('l9');
+var l10 = new SpotLight('l10');
+
+$('#power').click (function() {
+  power = !power;
+  if(power){
+    l1.on();
+    l2.on();
+    l3.on();
+    l4.on();
+    l5.on();
+    l6.on();
+    l7.on();
+    l8.on();
+    l9.on();
+    l10.on();
+	}
+  else {
+    l1.off();
+    l2.off();
+    l3.off();
+    l4.off();
+    l5.off();
+    l6.off();
+    l7.off();
+    l8.off();
+    l9.off();
+    l10.off();
+	}
+});
+</script>
+</body>
+
+</html>
