@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+<style>
+    #info {
+      width: 50vw;
+      height: 40vw;
+      float: left;
+      /*background-color: yellow;*/
+      margin: 5px;
+    }
+    body {
+      overflow: hidden;
+    }
+    p{
+      float: left;
+      margin-left:30px;
+    }
+
+</style>
+</head>
+
+<body>
+<h1 style="font-size:2em; text-align:center; margin:15px">
+Zelda's Legend Gallery
+</h1>
+
+  <div id="info"></div>
+  <div style="background:cyan; margin-top: 5px; margin-right: 30px; width:42vw; height:22vw; float:right">
+    <div style="background:black; width:22vw; height:22vw; float:left">
+      <img src="topdowncircir.jpg" width=100% height=100% usemap="#rolemap">
+      <map name="rolemap">
+        <area id="link" shape="circle" coords="130, 191.5, 15">
+        <area id="mifa" shape="circle" coords="35, 261, 15">
+        <area id="darukeru"shape="circle" coords="66.5, 63.5, 15">
+        <area id="uruboza" shape="circle" coords="102.5, 260, 15">
+        <area id="riibaru" shape="circle" coords="154, 68.5, 15">
+        <area id="zelda" shape="circle" coords="254.5, 40, 15">
+        <area id="ganon" shape="circle" coords="254, 258, 15">
+        <area id="together" shape="circle" coords="243, 105.5, 15">
+        <area id="camera1" shape="circle" coords="20, 170, 10">
+        <area id="camera2" shape="circle" coords="190, 150, 10">
+        <area id="camera3" shape="circle" coords="120, 68.5, 10">
+        <area id="camera4" shape="circle" coords="210, 150, 10">
+      </map>
+    </div>
+    <div style="background:white; width:20vw; height:25vw; float:right">
+      Black circle : choose picture<br>
+        Red circle : choose camera<br>
+        Please select :
+    <select id="toggle" onchange="picSelect()">
+       <option value=0>link</option>
+       <option value=1>mifa</option>
+       <option value=2>darukeru</option>
+       <option value=3>uruboza</option>
+       <option value=4>riibaru</option>
+       <option value=5>zelda</option>
+       <option value=6>ganon</option>
+       <option value=7>together</option>
+     </select>
+      <p id="intro"></p>
+      </div>
+    </div>
+  <div style="background:white; margin-top: 5px; margin-right: 30px; width:45vw; height:18vw; float:right">
+    <div style="background:red; width:28vw; height:18vw; float:left">
+      <div style="background:white; width:28vw; height:9vw">
+        <div id="cam1" style="background:green; width:13vw; height:8vw; float:left"></div>
+        <div id="cam2" style="background:yellow; width:13vw; height:8vw; float:right"></div>
+      </div>
+      <div style="background:white; width:28vw; height:9vw">
+        <div id="cam3" style="background:brown; width:13vw; height:8vw; float:left"></div>
+        <div id="cam4" style="background:black; width:13vw; height:8vw; float:right"></div>
+      </div>
+    </div>
+    <div style="background:white; width:16vw; height:18vw; float:right">
+      <div id="monitor" style="background:red; width:12vw; height:12vw; margin-left:2vw"></div>
+      <div style="background:white; width:16vw; height:4vw; margin-top: 1vw">
+        <button id="leftSide" style="border-top: 15px solid white;border-bottom: 15px solid white;border-right: 25px solid blue;display:inline-block; float:left; margin-left:10%"></button>
+        <input type="text" name="欄位名稱" style="width:6.7vw; height:2vw; text-align:center" value="zoom">
+        <button id="rightSide" style="border-top: 15px solid white;border-bottom: 15px solid white;border-left: 25px solid blue;display:inline-block;float:right; margin-right:10%"></button>
+
+      </div>
+    </div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+class Spotlight {
+  constructor() {
+    this.name = 'light';
+    this.on = true;
+    this.mesh = new THREE.SpotLight(0xffffff);
+    this.mesh.angle = 0.78;
+    this.mesh.penumbra = 0.5;
+    this.mesh.decay = 1;
+    this.mesh.distance = 300;
+  }
+  SetPosition(x, y, z) {
+    this.mesh.position.set(x, y, z);
+  }
+  SetRotate(x, y, z) {
+    this.mesh.rotate.set(x, y, z);
+  }
+}
+
+var camera, scene, renderer, rendererCam1, rendererCam2, rendererCam3, rendererCam4, ceiling, sCam, sCam2, sCam3, sCam4, cameraMoni, flag = 0, fov;
+var planes = [],
+  spotlight = [],
+  spot = [],
+  lamp = [],
+  lampbody = [];
+var texture;
+var safety = 0,
+  angle = 0,
+  sign = 1,
+  cameraObj, cameraObj2, cameraObj3, cameraObj4;
+var mouse = new THREE.Vector2();
+var raycaster = new THREE.Raycaster();
+var pickables = [];
+init();
+animate();
+
+$("#link").click(function(){
+  camera.position.x = -75;
+  camera.position.y = 150;
+  camera.position.z = 0;
+  camera.lookAt(pickables[0].position);
+  document.getElementById("intro").innerHTML = "誕生於騎士世家，憑著與生俱來的用劍才能與毫不鬆懈的鍛鍊，以最年少者的身份升格成薩爾達直屬近衛騎士。百年前蓋儂復活之際，在眾英傑們不支倒下的情況下，他為了保護薩爾達孤身對抗大量守護者，終於力竭而被送入復甦神廟沉睡百年。於遊戲開始時復活，卻因為長眠而失去了記憶。毫不挑食，無論什麼料理（即使是失敗料理）都吃的愛吃之人。";
+});
+
+$("#mifa").click(function(){
+  camera.position.x = -500;
+  camera.position.y = 150;
+  camera.position.z = 400;
+  camera.lookAt(pickables[1].position);
+  document.getElementById("intro").innerHTML = "卓拉族的英傑。擁有治癒他人傷痕的力量「英傑米法的祈福」，操作神獸瓦・露塔。身為卓拉族的公主與林克自幼相識。性格含蓄內斂，雖然懷著對林克的思慕，但因為卓拉族和海利亞人的成長速度遠遠不同，又顧慮林克作為薩爾達的近衛騎士的立場等原因，無法坦言自己的內心，只能悄悄地以林克的尺寸來製作給未來夫婿的卓拉之鎧，百年後終於能夠將它送至林克手中。";
+});
+
+$("#darukeru").click(function(){
+  camera.position.x = -300;
+  camera.position.y = 150;
+  camera.position.z = -250;
+  camera.lookAt(pickables[2].position);
+  document.getElementById("intro").innerHTML = "鼓隆族的英傑。擁有在周圍張開結界保護自己的力量「英傑達爾克爾的守護」，操作神獸瓦・魯達尼亞。在鼓隆族人當中也是相當強壯的大塊頭，稱呼林克為「夥伴」。性格豪爽的同時，也有對容易鑽牛角尖的薩爾達倍加關懷的一面，很重感情。不像其他鼓隆族人一樣會在句尾加「~哥婁（~ゴロ）」。他在靈魂被解放後暌違百年地眺望海拉爾的風景，滿足地說「這景色不賴」。";
+});
+
+$("#uruboza").click(function(){
+  camera.position.x = -100;
+  camera.position.y = 150;
+  camera.position.z = 400;
+  camera.lookAt(pickables[3].position);
+  document.getElementById("intro").innerHTML = "格魯特族的英傑。擁有在周圍降下強力雷電的力量「英傑烏爾波扎的憤怒」，操作神獸瓦・娜波力斯。擁有作為戰士的強大力量之外，對周圍的人也充滿關切，作為能理解薩爾達的人，言行都很顧慮她的感受。百年前災厄復活之際進行了頑強的抵抗卻還是不敵，在神獸之中失去了生命。靈魂被解放後對於和自己同一部落出身的蓋儂發誓要賭上格魯特族的決心一雪前恥。";
+});
+
+$("#riibaru").click(function(){
+  camera.position.x = 175;
+  camera.position.y = 150;
+  camera.position.z = -310;
+  camera.lookAt(pickables[4].position);
+  document.getElementById("intro").innerHTML = "利特族的英傑。擁有製造上升氣流的力量「英傑力巴爾的勇猛」，操作神獸瓦・梅德。在利特族中是首屈一指的弓箭手，本人也以此為傲。因此作為英傑的頭領對林克顯露出了對抗之心，認為自己才是英傑的核心，經常向林克挑釁。雖然靈魂被解放後對林克傲慢的態度也並無改變，但因為林克平定了神獸瓦・梅德，終於從心底接受自己輸得徹底，作出了「你才是我們的核心」這一評價。";
+});
+
+$("#zelda").click(function(){
+  camera.position.x = 300;
+  camera.position.y = 150;
+  camera.position.z = -400;
+  camera.lookAt(pickables[5].position);
+  document.getElementById("intro").innerHTML = "海拉魯王國的公主。為抑制想要復活的蓋儂的魔力已與其抗爭了百年，即將瀕臨極限。有著旺盛的求知慾和好奇心，並精通考古學。在蓋儂被預言將要復活之際，和林克一起在海拉魯各地遊走，調查席卡族（シーカー族）為對抗蓋儂遺留下的遺蹟和兵器。";
+});
+
+$("#ganon").click(function(){
+  camera.position.x = 400;
+  camera.position.y = 150;
+  camera.position.z = 250;
+  camera.lookAt(pickables[6].position);
+  document.getElementById("intro").innerHTML = "從一萬年前起就一次次襲擊海拉魯王國的魔王蓋儂的怨念。本作中和以往的魔王不同，是被稱之為災厄的概念。復活之時被擁有勇者之力的劍士和擁有神聖之力的公主封印。在故事開始的一百年前從海拉魯城的地下再次復活，以魔力奪取了神獸和守護者，殺害英傑和國王，使得海拉魯王國滅亡。然而薩爾達以隻身之力抑制了蓋儂並將他控制于海拉魯城，因此並未能完全復活。";
+});
+
+$("#together").click(function(){
+  camera.position.x = 350;
+  camera.position.y = 150;
+  camera.position.z = 0;
+  camera.lookAt(pickables[7].position);
+  document.getElementById("intro").innerHTML = "林克與眾英傑們首次來到海拉魯王國接受國王加冕，並與薩爾達留下的合影，時代久遠。";
+});
+
+$("#camera1").click(function(){
+  flag = 1;
+  //console.log("1");
+});
+
+$("#camera2").click(function(){
+  flag = 2;
+  //console.log("2");
+});
+
+$("#camera3").click(function(){
+  flag = 3;
+  //console.log("3");
+});
+
+$("#camera4").click(function(){
+  flag = 4;
+  //console.log("4");
+});
+
+$("#rightSide").click(function(){
+  switch(flag){
+    case 1:
+      if(sCam.fov < 70) sCam.fov+=5;
+      sCam.updateProjectionMatrix();
+      sCam2.fov = 45;
+      sCam3.fov = 45;
+      sCam4.fov = 45;
+      //console.log(sCam.fov);
+      break;
+    case 2:
+      if(sCam2.fov < 70) sCam2.fov+=5;
+      sCam2.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam3.fov = 45;
+      sCam4.fov = 45;
+      break;
+    case 3:
+      if(sCam3.fov < 70) sCam3.fov+=5;
+      sCam3.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam2.fov = 45;
+      sCam4.fov = 45;
+      break;
+    default:
+      if(sCam4.fov < 70) sCam4.fov+=5;
+      sCam4.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam2.fov = 45;
+      sCam3.fov = 45;
+  }
+});
+
+$("#leftSide").click(function(){
+  switch(flag){
+    case 1:
+      if(sCam.fov > 20) sCam.fov-=5;
+      sCam.updateProjectionMatrix()
+      sCam2.fov = 45;
+      sCam3.fov = 45;
+      sCam4.fov = 45;
+      break;
+    case 2:
+      if(sCam2.fov > 20) sCam2.fov-=5;
+      sCam2.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam3.fov = 45;
+      sCam4.fov = 45;
+      break;
+    case 3:
+      if(sCam3.fov > 20) sCam3.fov-=5;
+      sCam3.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam2.fov = 45;
+      sCam4.fov = 45;
+      break;
+    default:
+      if(sCam4.fov > 20) sCam4.fov-=5;
+      sCam4.updateProjectionMatrix()
+      sCam.fov = 45;
+      sCam2.fov = 45;
+      sCam3.fov = 45;
+  }
+});
+
+function picSelect(x){
+  if(x == null){
+    let y = document.getElementById("toggle").value;
+    x = parseInt(y);
+  }
+  //console.log(x)
+  //camera.lookAt(pickables[x].position);
+  switch (x) {
+    case 0:
+      camera.position.x = -75;
+      camera.position.y = 150;
+      camera.position.z = 0;
+      camera.lookAt(pickables[0].position);
+      document.getElementById("intro").innerHTML = "誕生於騎士世家，憑著與生俱來的用劍才能與毫不鬆懈的鍛鍊，以最年少者的身份升格成薩爾達直屬近衛騎士。百年前蓋儂復活之際，在眾英傑們不支倒下的情況下，他為了保護薩爾達孤身對抗大量守護者，終於力竭而被送入復甦神廟沉睡百年。於遊戲開始時復活，卻因為長眠而失去了記憶。毫不挑食，無論什麼料理（即使是失敗料理）都吃的愛吃之人。";
+      break;
+    case 1:
+      camera.position.x = -500;
+      camera.position.y = 150;
+      camera.position.z = 400;
+      camera.lookAt(pickables[1].position);
+      document.getElementById("intro").innerHTML = "卓拉族的英傑。擁有治癒他人傷痕的力量「英傑米法的祈福」，操作神獸瓦・露塔。身為卓拉族的公主與林克自幼相識。性格含蓄內斂，雖然懷著對林克的思慕，但因為卓拉族和海利亞人的成長速度遠遠不同，又顧慮林克作為薩爾達的近衛騎士的立場等原因，無法坦言自己的內心，只能悄悄地以林克的尺寸來製作給未來夫婿的卓拉之鎧，百年後終於能夠將它送至林克手中。";
+      break;
+    case 2:
+      camera.position.x = -300;
+      camera.position.y = 150;
+      camera.position.z = -250;
+      camera.lookAt(pickables[2].position);
+      document.getElementById("intro").innerHTML = "鼓隆族的英傑。擁有在周圍張開結界保護自己的力量「英傑達爾克爾的守護」，操作神獸瓦・魯達尼亞。在鼓隆族人當中也是相當強壯的大塊頭，稱呼林克為「夥伴」。性格豪爽的同時，也有對容易鑽牛角尖的薩爾達倍加關懷的一面，很重感情。不像其他鼓隆族人一樣會在句尾加「~哥婁（~ゴロ）」。他在靈魂被解放後暌違百年地眺望海拉爾的風景，滿足地說「這景色不賴」。";
+      break;
+    case 3:
+      camera.position.x = -100;
+      camera.position.y = 150;
+      camera.position.z = 400;
+      camera.lookAt(pickables[3].position);
+      document.getElementById("intro").innerHTML = "格魯特族的英傑。擁有在周圍降下強力雷電的力量「英傑烏爾波扎的憤怒」，操作神獸瓦・娜波力斯。擁有作為戰士的強大力量之外，對周圍的人也充滿關切，作為能理解薩爾達的人，言行都很顧慮她的感受。百年前災厄復活之際進行了頑強的抵抗卻還是不敵，在神獸之中失去了生命。靈魂被解放後對於和自己同一部落出身的蓋儂發誓要賭上格魯特族的決心一雪前恥。";
+      break;
+    case 4:
+      camera.position.x = 175;
+      camera.position.y = 150;
+      camera.position.z = -310;
+      camera.lookAt(pickables[4].position);
+      document.getElementById("intro").innerHTML = "利特族的英傑。擁有製造上升氣流的力量「英傑力巴爾的勇猛」，操作神獸瓦・梅德。在利特族中是首屈一指的弓箭手，本人也以此為傲。因此作為英傑的頭領對林克顯露出了對抗之心，認為自己才是英傑的核心，經常向林克挑釁。雖然靈魂被解放後對林克傲慢的態度也並無改變，但因為林克平定了神獸瓦・梅德，終於從心底接受自己輸得徹底，作出了「你才是我們的核心」這一評價。";
+      break;
+    case 5:
+      camera.position.x = 300;
+      camera.position.y = 150;
+      camera.position.z = -400;
+      camera.lookAt(pickables[5].position);
+      document.getElementById("intro").innerHTML = "海拉魯王國的公主。為抑制想要復活的蓋儂的魔力已與其抗爭了百年，即將瀕臨極限。有著旺盛的求知慾和好奇心，並精通考古學。在蓋儂被預言將要復活之際，和林克一起在海拉魯各地遊走，調查席卡族（シーカー族）為對抗蓋儂遺留下的遺蹟和兵器。";
+      break;
+    case 6:
+      camera.position.x = 400;
+      camera.position.y = 150;
+      camera.position.z = 250;
+      camera.lookAt(pickables[6].position);
+      document.getElementById("intro").innerHTML = "從一萬年前起就一次次襲擊海拉魯王國的魔王蓋儂的怨念。本作中和以往的魔王不同，是被稱之為災厄的概念。復活之時被擁有勇者之力的劍士和擁有神聖之力的公主封印。在故事開始的一百年前從海拉魯城的地下再次復活，以魔力奪取了神獸和守護者，殺害英傑和國王，使得海拉魯王國滅亡。然而薩爾達以隻身之力抑制了蓋儂並將他控制于海拉魯城，因此並未能完全復活。";
+      break;
+    default:
+      camera.position.x = 350;
+      camera.position.y = 150;
+      camera.position.z = 0;
+      camera.lookAt(pickables[7].position);
+      document.getElementById("intro").innerHTML = "林克與眾英傑們首次來到海拉魯王國接受國王加冕，並與薩爾達留下的合影，時代久遠。";
+  }
+}
+
+function init() {
+renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  var ww = $('#info').innerWidth();
+  var hh = $('#info').innerHeight();
+  renderer.setSize(ww, hh);
+  renderer.setClearColor(0x555555);
+  $('#info').append(renderer.domElement);
+
+  rendererCam1 = new THREE.WebGLRenderer({
+      antialias: true
+    });
+  var cam1w = $('#cam1').innerWidth();
+  var cam1h = $('#cam1').innerHeight();
+  rendererCam1.setSize(cam1w, cam1h);
+  rendererCam1.setClearColor(0x555555);
+  $('#cam1').append(rendererCam1.domElement);
+
+  rendererCam2 = new THREE.WebGLRenderer({
+      antialias: true
+    });
+  var cam2w = $('#cam2').innerWidth();
+  var cam2h = $('#cam2').innerHeight();
+  rendererCam2.setSize(cam2w, cam2h);
+  rendererCam2.setClearColor(0x555555);
+  $('#cam2').append(rendererCam2.domElement);
+
+  rendererCam3 = new THREE.WebGLRenderer({
+      antialias: true
+    });
+  var cam3w = $('#cam3').innerWidth();
+  var cam3h = $('#cam3').innerHeight();
+  rendererCam3.setSize(cam3w, cam3h);
+  rendererCam3.setClearColor(0x555555);
+  $('#cam3').append(rendererCam3.domElement);
+
+  rendererCam4 = new THREE.WebGLRenderer({
+      antialias: true
+    });
+  var cam4w = $('#cam4').innerWidth();
+  var cam4h = $('#cam4').innerHeight();
+  rendererCam4.setSize(cam4w, cam4h);
+  rendererCam4.setClearColor(0x555555);
+  $('#cam4').append(rendererCam4.domElement);
+
+  rendererMoni = new THREE.WebGLRenderer({
+      antialias: true
+    });
+  var moniw = $('#monitor').innerWidth();
+  var monih = $('#monitor').innerHeight();
+  rendererMoni.setSize(moniw, monih);
+  rendererMoni.setClearColor(0x555555);
+  $('#monitor').append(rendererMoni.domElement);
+
+  scene = new THREE.Scene();
+  //god mode camera
+  camera = new THREE.PerspectiveCamera(50, ww / hh, 1, 10000);
+  camera.position.y = 1200;
+  camera.position.z = 1600;
+  let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  //SurveillanceCamera 監視器1
+  sCam = new THREE.PerspectiveCamera(50, ww / hh, 1, 2000);
+  cameraObj = new THREE.Object3D();
+  cameraBody = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 5), new THREE.MeshNormalMaterial());
+  lens = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 10), new THREE.MeshNormalMaterial());
+  lens.position.z = -5;
+  lens.rotation.x = Math.PI / 2;
+  cameraObj.add(cameraBody, lens);
+  cameraCase = new THREE.Object3D();
+  cameraCase.add(cameraObj);
+  cameraCase.position.set(-450, 300, 50);
+  scene.add(cameraCase);
+  // manual aiming, from (-50,40,50) to (0,0,0)
+  cameraCase.rotation.y = -Math.PI / 2;
+  cameraCase.rotation.x = -Math.PI / 5;
+  //cameraCase.rotation.z = -Math.PI / 6;
+  cameraCase.rotation.order = 'YXZ'
+
+  //console.log(sCam.fov);
+
+  //SurveillanceCamera 監視器2
+  sCam2 = new THREE.PerspectiveCamera(50, ww / hh, 1, 2000);
+  cameraObj2 = new THREE.Object3D();
+  cameraBody2 = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 5), new THREE.MeshNormalMaterial());
+  lens2 = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 10), new THREE.MeshNormalMaterial());
+  lens2.position.z = -5;
+  lens2.rotation.x = Math.PI / 2;
+  cameraObj2.add(cameraBody2, lens2);
+  cameraCase2 = new THREE.Object3D();
+  cameraCase2.add(cameraObj2);
+  cameraCase2.position.set(150, 300, 0);
+  scene.add(cameraCase2);
+  // manual aiming, from (-50,40,50) to (0,0,0)
+  cameraCase2.rotation.y = Math.PI / 2;
+  cameraCase2.rotation.x = -Math.PI / 5;
+  //cameraCase.rotation.z = -Math.PI / 6;
+  cameraCase2.rotation.order = 'YXZ'
+
+  //SurveillanceCamera 監視器3
+  sCam3 = new THREE.PerspectiveCamera(50, ww / hh, 1, 2000);
+  cameraObj3 = new THREE.Object3D();
+  cameraBody3 = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 5), new THREE.MeshNormalMaterial());
+  lens3 = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 10), new THREE.MeshNormalMaterial());
+  lens3.position.z = -5;
+  lens3.rotation.x = Math.PI / 3;
+  cameraObj3.add(cameraBody3, lens3);
+  cameraCase3 = new THREE.Object3D();
+  cameraCase3.add(cameraObj3);
+  cameraCase3.position.set(-75, 300, -300);
+  scene.add(cameraCase3);
+  // manual aiming, from (-50,40,50) to (0,0,0)
+  cameraCase3.rotation.y = -Math.PI / 2;
+  cameraCase3.rotation.x = -Math.PI / 5;
+  //cameraCase.rotation.z = -Math.PI / 6;
+  cameraCase3.rotation.order = 'YXZ'
+
+  //SurveillanceCamera 監視器4
+  sCam4 = new THREE.PerspectiveCamera(50, ww / hh, 1, 2000);
+  cameraObj4 = new THREE.Object3D();
+  cameraBody4 = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 5), new THREE.MeshNormalMaterial());
+  lens4 = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 10), new THREE.MeshNormalMaterial());
+  lens4.position.z = -5;
+  lens4.rotation.x = Math.PI / 2;
+  cameraObj4.add(cameraBody4, lens4);
+  cameraCase4 = new THREE.Object3D();
+  cameraCase4.add(cameraObj4);
+  cameraCase4.position.set(200, 300, 0);
+  scene.add(cameraCase4);
+  // manual aiming, from (-50,40,50) to (0,0,0)
+  cameraCase4.rotation.y = -Math.PI / 2;
+  cameraCase4.rotation.x = -Math.PI / 5;
+  //cameraCase.rotation.z = -Math.PI / 6;
+  cameraCase4.rotation.order = 'YXZ'
+
+  window.addEventListener('resize', onWindowResize, false);
+  window.addEventListener('mousedown', onDocumentMouseDown, false);
+
+  //DirectionalLight
+  light = new THREE.DirectionalLight(0xffffff);
+  light.position.set(1000, 3000, 2000);
+  scene.add(light);
+  light2 = new THREE.DirectionalLight(0xffffff);
+  light2.position.set(-1000, 2000, -1000);
+  scene.add(light2);
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  gridXZ.position.y = 50
+  //scene.add(gridXZ);
+
+  //ceiling
+  ceiling = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial({
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.2
+  }));
+  scene.add(ceiling);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = 300;
+  //floor setting
+  let loader = new THREE.TextureLoader();
+  loader.crossOrigin = '';
+  texture = loader.load('http://i.imgur.com/xpsziyv.png');
+  texture.repeat.set(3, 3);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({
+    map: texture,
+    side: THREE.DoubleSide
+  }))
+  floor.rotation.x = -Math.PI / 2
+  scene.add(floor)
+
+  //document.body.appendChild(renderer.domElement);
+  /////// wall set
+  let wall
+  var wallMaterial = new THREE.MeshPhongMaterial({
+    color: 0xffffff
+    //transparent: true
+  });
+  //edge side
+  wall = new THREE.Mesh(new THREE.BoxGeometry(1020, 300, 10), wallMaterial);
+  scene.add(wall)
+  wall.position.z = 505
+  planes.push(wall)
+  wall = new THREE.Mesh(new THREE.BoxGeometry(1020, 300, 10), wallMaterial);
+  scene.add(wall)
+  wall.position.z = -505
+  planes.push(wall)
+  wall = new THREE.Mesh(new THREE.BoxGeometry(10, 300, 1000), wallMaterial);
+  scene.add(wall)
+  wall.position.x = -505
+  planes.push(wall)
+  wall = new THREE.Mesh(new THREE.BoxGeometry(10, 300, 1000), wallMaterial);
+  scene.add(wall)
+  wall.position.x = 505
+  planes.push(wall)
+  //inside wall
+  wall = new THREE.Mesh(new THREE.BoxGeometry(50, 300, 300), wallMaterial);
+  scene.add(wall)
+  wall.position.x = 250
+  wall.position.z = 350
+  planes.push(wall)
+  let wall1, wall2, wall3;
+  wall1 = new THREE.Mesh(new THREE.BoxGeometry(50, 300, 300), wallMaterial);
+  scene.add(wall1)
+  wall1.position.x = 175
+  wall1.position.z = -125
+  planes.push(wall1)
+  wall2 = new THREE.Mesh(new THREE.BoxGeometry(350, 300, 50), wallMaterial);
+  wall1.add(wall2)
+  wall2.position.x = 150
+  wall2.position.z = -175
+  //planes.push(wall2)
+  wall1 = new THREE.Mesh(new THREE.BoxGeometry(50, 300, 300), wallMaterial);
+  scene.add(wall1)
+  wall1.position.x = -300
+  wall1.position.z = 350
+  planes.push(wall1)
+  wall2 = new THREE.Mesh(new THREE.BoxGeometry(500, 300, 50), wallMaterial);
+  wall1.add(wall2)
+  wall2.position.x = 175
+  wall2.position.z = -75
+  //planes.push(wall2)
+  wall = new THREE.Mesh(new THREE.BoxGeometry(50, 300, 300), wallMaterial);
+  scene.add(wall)
+  wall.position.x = -100
+  wall.position.z = -350
+  planes.push(wall)
+  /*wall = new THREE.Mesh(new THREE.BoxGeometry(300, 400, 50), wallMaterial);
+  scene.add(wall)
+  wall.position.x = -150
+  planes.push(wall)*/
+  let i;
+  for (i = 0; i < planes.length; i++)
+    planes[i].position.y = 150;
+  //test
+  let person = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 180, 32), wallMaterial)
+  //scene.add(person)
+  person.position.x = 50
+  person.position.y = 90
+  //spotlight
+  loader.crossOrigin = '';
+  texture = loader.load('https://i.imgur.com/2F71s51.jpg');
+  texture.repeat.set(3, 3);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  for (i = 0; i < 10; i++) {
+    spotlight[i] = new Spotlight();
+    spot[i] = new THREE.Mesh(new THREE.SphereGeometry(5, 20, 20), new THREE.MeshBasicMaterial({
+      color: 'red'
+    }));
+    lamp[i] = new THREE.Object3D();
+    lampbody[i] = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 30), new THREE.MeshPhongMaterial({
+      map: texture
+    }));
+    lamp[i].add(lampbody[i]);
+    lampbody[i].position.set(0, 0, 15);
+    lampbody[i].rotation.x = Math.PI / 2;
+    scene.add(spot[i]);
+    spotlight[i].mesh.target = spot[i];
+    spot[i].material.visible = false;
+  }
+  scene.add(lamp[1]);
+  scene.add(spotlight[1].mesh);
+  spot[1].position.set(400, 150, 500);
+  spotlight[1].SetPosition(400, 300, 350);
+  lamp[1].position.copy(spotlight[1].mesh.position);
+  scene.add(lamp[2]);
+  scene.add(spotlight[2].mesh);
+  spot[2].position.set(325, 150, -275);
+  spotlight[2].SetPosition(325, 300, -125);
+  lamp[2].position.copy(spotlight[2].mesh.position);
+  scene.add(lamp[3]);
+  scene.add(spotlight[3].mesh);
+  spot[3].position.set(500, 150, -425);
+  spotlight[3].SetPosition(350, 300, -425);
+  lamp[3].position.copy(spotlight[3].mesh.position);
+  scene.add(lamp[4]);
+  scene.add(spotlight[4].mesh);
+  spot[4].position.set(-75, 150, -300);
+  spotlight[4].SetPosition(75, 300, -300);
+  lamp[4].position.copy(spotlight[4].mesh.position);
+  scene.add(lamp[5]);
+  scene.add(spotlight[5].mesh);
+  spot[5].position.set(-275, 150, 400);
+  spotlight[5].SetPosition(-125, 300, 400);
+  lamp[5].position.copy(spotlight[5].mesh.position);
+  scene.add(lamp[6]);
+  scene.add(spotlight[6].mesh);
+  spot[6].position.set(-300, 150, -500);
+  spotlight[6].SetPosition(-300, 300, -350);
+  lamp[6].position.copy(spotlight[6].mesh.position);
+  scene.add(lamp[7]);
+  scene.add(spotlight[7].mesh);
+  spot[7].position.set(-325, 150, 400);
+  spotlight[7].SetPosition(-425, 300, 400);
+  lamp[7].position.copy(spotlight[7].mesh.position);
+  scene.add(lamp[8]);
+  scene.add(spotlight[8].mesh);
+  spot[8].position.set(-75, 150, 250);
+  spotlight[8].SetPosition(-75, 300, 150);
+  lamp[8].position.copy(spotlight[8].mesh.position);
+
+  //picture
+  tex1 = loader.load('link.jpg');
+	let paint1 = new THREE.Mesh (new THREE.PlaneGeometry(210,140), new THREE.MeshBasicMaterial({map: tex1, side: THREE.DoubleSide}));
+  scene.add (paint1); //spot8
+  paint1.position.y = 150;
+  paint1.rotation.y = Math.PI;
+  paint1.position.x = -75;
+  paint1.position.z = 249
+  paint1.name = "link";
+
+  tex2 = loader.load('mifa.jpg');
+	let paint2 = new THREE.Mesh (new THREE.PlaneGeometry(192,108), new THREE.MeshBasicMaterial({map: tex2, side: THREE.DoubleSide}));
+  scene.add (paint2); //spot7
+  paint2.position.y = 150;
+  paint2.rotation.y = -Math.PI/2;
+  paint2.position.x = -326;
+  paint2.position.z = 400;
+  paint2.name = "mifa";
+
+  tex3 = loader.load('darukeru.jpg');
+	let paint3 = new THREE.Mesh (new THREE.PlaneGeometry(256,144), new THREE.MeshBasicMaterial({map: tex3, side: THREE.DoubleSide}));
+  scene.add (paint3); //spot6
+  paint3.position.y = 150;
+  paint3.position.x = -300;
+  paint3.position.z = -499;
+  paint3.name = "darukeru";
+
+  tex4 = loader.load('uruboza.jpg');
+	let paint4 = new THREE.Mesh (new THREE.PlaneGeometry(192,108), new THREE.MeshBasicMaterial({map: tex4, side: THREE.DoubleSide}));
+  scene.add (paint4); //spot5
+  paint4.position.y = 150;
+  paint4.rotation.y = Math.PI/2;
+  paint4.position.x = -274;
+  paint4.position.z = 400;
+  paint4.name = "uruboza";
+
+  tex5 = loader.load('riibaru.jpg');
+	let paint5 = new THREE.Mesh (new THREE.PlaneGeometry(204.8,115.2), new THREE.MeshBasicMaterial({map: tex5, side: THREE.DoubleSide}));
+  scene.add (paint5); //spot4
+  paint5.position.y = 175;
+  paint5.rotation.y = Math.PI/2;
+  paint5.position.x = -74;
+  paint5.position.z = -310;
+  paint5.name = "riibaru";
+
+  tex6 = loader.load('zelda.jpg');
+	let paint6 = new THREE.Mesh (new THREE.PlaneGeometry(178,100), new THREE.MeshBasicMaterial({map: tex6, side: THREE.DoubleSide}));
+  scene.add (paint6); //spot3
+  paint6.position.y = 175;
+  paint6.rotation.y = Math.PI/2;
+  paint6.position.x = 499;
+  paint6.position.z = -400;
+  paint6.name = "zelda";
+
+  tex7 = loader.load('ganon.jpg');
+	let paint7 = new THREE.Mesh (new THREE.PlaneGeometry(204.8,115.2), new THREE.MeshBasicMaterial({map: tex7, side: THREE.DoubleSide}));
+  scene.add (paint7); //spot1
+  paint7.position.y = 175;
+  paint7.position.x = 400;
+  paint7.position.z = 499;
+  paint7.name = "ganon";
+
+  tex8 = loader.load('together.jpg');
+	let paint8 = new THREE.Mesh (new THREE.PlaneGeometry(256,144), new THREE.MeshBasicMaterial({map: tex8, side: THREE.DoubleSide}));
+  scene.add (paint8); //spot2
+  paint8.position.y = 175;
+  paint8.position.x = 350;
+  paint8.position.z = -274;
+  paint8.name = "together";
+
+  pickables.push (paint1, paint2, paint3, paint4, paint5, paint6, paint7, paint8);
+
+  //console.log(pickables)
+}
+
+function onWindowResize() {
+  var ww = $('#info').innerWidth();
+  var hh = $('#info').innerHeight();
+  camera.aspect = ww / hh;
+  camera.updateProjectionMatrix();
+  renderer.setSize(ww, hh);
+
+/*  var cam1w = $('#cam1').innerWidth();
+  var cam1h = $('#cam1').innerHeight();
+  sCam.aspect = cam1w / cam1h;
+  sCam.updateProjectionMatrix() = false;
+  rendererCam1.setSize(cam1w, cam1h);
+
+  var cam2w = $('#cam2').innerWidth();
+  var cam2h = $('#cam2').innerHeight();
+  sCam2.aspect = cam2w / cam2h;
+  sCam2.updateProjectionMatrix();
+  rendererCam2.setSize(cam2w, cam2h);
+
+  var cam3w = $('#cam3').innerWidth();
+  var cam3h = $('#cam3').innerHeight();
+  sCam3.aspect = cam3w / cam3h;
+  sCam3.updateProjectionMatrix();
+  rendererCam3.setSize(cam3w, cam3h);
+
+  var cam4w = $('#cam4').innerWidth();
+  var cam4h = $('#cam4').innerHeight();
+  sCam4.aspect = cam4w / cam4h;
+  sCam4.updateProjectionMatrix();
+  rendererCam4.setSize(cam4w, cam4h);
+
+  var moniw = $('#moni').innerWidth();
+  var monih = $('#moni').innerHeight();
+  cameraMoni.aspect = moniw / monih;
+  cameraMoni.updateProjectionMatrix();
+  rendererMoni.setSize(moniw, monih);*/
+}
+
+function onDocumentMouseDown(event) {
+  var viewportPos = $('#info').get(0).getBoundingClientRect();
+  mouse.x = ((event.clientX - viewportPos.left) / $('#info').innerWidth()) * 2 - 1;
+  mouse.y = -((event.clientY - viewportPos.top) / $('#info').innerHeight()) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects (pickables);
+  //console.log(intersects);
+  if (intersects.length > 0) {
+    //cyl.position.copy(intersects[0].point);
+    //alert (intersects[0].object.name + " is picked!")
+    for(let i = 0; i < pickables.length; i++){
+      //console.log(intersects[0].object.name + " *** " + pickables[i].name);
+      if(intersects[0].object.name === pickables[i].name) picSelect(i);
+    }
+  }
+}
+
+function animate() {
+  for (let i = 0; i < 10; i++) lamp[i].lookAt(spot[i].position);
+  // simple turning
+  angle += 0.005 * sign;
+  if (angle > 0.3 || angle < -0.3)
+    sign *= -1;
+  cameraObj.rotation.y = angle;
+  cameraObj2.rotation.y = angle;
+  cameraObj3.rotation.y = angle;
+  cameraObj4.rotation.y = angle;
+  sCam.matrixWorld.copy(cameraObj.matrixWorld);
+  sCam.matrixAutoUpdate = false;
+  sCam2.matrixWorld.copy(cameraObj2.matrixWorld);
+  sCam2.matrixAutoUpdate = false;
+  sCam3.matrixWorld.copy(cameraObj3.matrixWorld);
+  sCam3.matrixAutoUpdate = false;
+  sCam4.matrixWorld.copy(cameraObj4.matrixWorld);
+  sCam4.matrixAutoUpdate = false;
+
+  renderer.render(scene, camera);
+  rendererCam1.render(scene, sCam);
+  rendererCam2.render(scene, sCam2);
+  rendererCam3.render(scene, sCam3);
+  rendererCam4.render(scene, sCam4);
+  switch(flag){
+    case 1:
+      rendererMoni.render(scene, sCam);
+      break;
+    case 2:
+      rendererMoni.render(scene, sCam2);
+      break;
+    case 3:
+      rendererMoni.render(scene, sCam3);
+      break;
+    default:
+      rendererMoni.render(scene, sCam4);
+  }
+
+  requestAnimationFrame(animate);
+  //render();
+}
+/*function render() {
+  renderer.render(scene, camera);
+}*/
+</script>
+</body>
+
+</html>
