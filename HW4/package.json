@@ -1,0 +1,23 @@
+{
+  "name": "hw4",
+  "version": "1.0.0",
+  "description": "HW4.js will run a http server in http://127.0.0.1:1337",
+  "main": "HW4.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-win": "node main-win.js",
+    "start-mac": "node main-mac.js",
+    "build": "gcc main.cpp"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "shelljs": "^0.8.3"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "3W3D"
+  }
+}
