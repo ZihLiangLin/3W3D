@@ -30,7 +30,7 @@
     <p id="hud" style="text-align:center"></p>
   </div>
 </div>
-<div style="float:left; margin:3px; width:23vw; height:40vw">
+<div style="float:right; margin:3px; width:23vw; height:40vw">
   <div id="containerR" style="float:left; background-color: blue; margin:3px; width:25vw; height:18vw">
     <canvas id='mirrorViewR'></canvas>
   </div>
@@ -66,7 +66,7 @@ var thetaa = 0, count = 3;
 var clockk, pin, center, run = 0.5;
 var clockk2, pin2, center2, run2 = -3.7;
 
-var socket;
+var socket, oneTime = 0;
 var isTurn = [false, false];
 var myID, otherID;  // either 0 or 1
 //////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ $(function () {
 		console.log ('i am ' + msg);
 		// setting myID in this client
 		myID = msg;
-    setTimeout(gg, 1000);
+    //setTimeout(gg, 1000);
     //console.log(myID);
     //console.log(typeof(myID));
 		if (myID === 0)
@@ -110,9 +110,13 @@ $(function () {
 	socket.on ('new_id', function(msg) {
 		console.log ('new kid in town: ' + msg);
 		otherID = msg;
-    setTimeout(gg, 1000);
-	})
+    //setTimeout(gg, 1000);
+	});
+  socket.on ('checkOK', function(time) {
+      setTimeout(gg, time);
+  	});
 });
+
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -127,8 +131,7 @@ setInterval (
   console.log ('in sync ' + myID);
   let data = {id: myID, angle: meshes[myID].rotation.y};
   socket.emit ('angle_now', data);
-  },
-100);
+},16.6);//60 FPS
 ///////////////////////////////////////////////////////////
 
 function init() {
@@ -397,6 +400,7 @@ function animate() {
   if (fuel < 0) {
     engine = false;
     fuel = 0;
+    omega = 0;
   }
   $('#fuel').text(fuel.toFixed(2));
   $('#fastslow').text((omega*200).toFixed(2));
@@ -408,6 +412,11 @@ function animate() {
 
   center2.rotation.z = run2;
   run2 = 0.5 - fuel/fuelMax*4.2;
+
+  if(myID !== undefined && otherID !== undefined && oneTime === 0){
+      oneTime++;
+      socket.emit ('loadOK', myID);
+    }
 }
 function render() {
   renderer.render(scene, camera);

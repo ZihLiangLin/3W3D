@@ -3,6 +3,7 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
 var port = 8000;
+var c0 = false, c1 = false;
 server.listen (port, function() {
   console.log ('listening on port ' + port)
 });
@@ -70,6 +71,13 @@ io.on('connect', function(socket){
   console.log (status);
     socket.emit ('update_status', status);
   });
+
+  socket.on('loadOK', function(myID) {
+		if(myID === 0) c0 = true;
+		if(myID === 1) c1 = true;
+		console.log("C0: " + c0 + "  C1: " + c1);
+		if(c0 && c1) io.emit ('checkOK', 1000);
+    });
 
   socket.on ('angle_now', function (data) {
 	let angle = data.angle;
