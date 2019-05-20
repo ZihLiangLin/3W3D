@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+<style>
+
+</style>
+</head>
+
+<body>
+  <h1 style="text-align:center"> GAS!GAS!GAS! </h1>
+<hr>
+<div style="float:left; margin:3px; width:25vw; height:40vw">
+  <div id="containerL" style="float:left; background-color: red; margin:3px; width:25vw; height:18vw">
+    <canvas id='mirrorViewL'></canvas>
+  </div>
+  <div id="speedMonitor" style="float:left; background-color: green; margin:3px; width:25vw; height:18vw">
+    <p style="text-align:center">speedMonitor</p>
+      <p id="fastslow" style="text-align:center"></p>
+  </div>
+</div>
+<div style="float:left; margin:3px; width:46vw; height:40vw">
+  <div id="container" style="float:left; margin:3px; width:46vw; height:34vw">
+    <canvas id='frontView'></canvas>
+  </div>
+  <div style="float:left; margin:3px; width:46vw">
+    <button id="stepB" style="width:100%">Step</button>
+    <p id="hud" style="text-align:center"></p>
+  </div>
+</div>
+<div style="float:right; margin:3px; width:23vw; height:40vw">
+  <div id="containerR" style="float:left; background-color: blue; margin:3px; width:25vw; height:18vw">
+    <canvas id='mirrorViewR'></canvas>
+  </div>
+  <div id="oilMonitor" style="float:left; background-color: pink; margin:3px; width:25vw; height:18vw">
+    <p style="text-align:center">oilMonitor</p>
+    <p id="fuel" style="text-align:center"></p>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+<script>
+/*$('#toggle').click ( function() {
+  socket.emit ('toggle', myID);
+});*/
+var camera, scene, renderer;
+var omega, theta = [0, 0], R = [70, 56];
+var car;
+var clock = new THREE.Clock();
+var step = false;
+var keyboard;
+var fuel, fuelMax;
+var engine = [false, false];
+var meshes = [new THREE.Object3D(), new THREE.Object3D()];
+
+var cameraB, rendererB, cameraBR, rendererBR, cameraS, rendererS, cameraO, rendererO, sceneS, sceneO;
+var cameraRTT;
+var renderTarget;
+//var meshes[0], meshes[1];
+var thetaa = 0, count = 3;
+var clockk, pin, center, run = 0.5;
+var clockk2, pin2, center2, run2 = -3.7;
+
+var socket, oneTime = 0;
+var isTurn = [false, false];
+var myID, otherID;  // either 0 or 1
+//////////////////////////////////////////////////////////////
+
+$(function () {
+	socket = io();
+
+	socket.on ('id_set', function(msg) {
+		console.log ('i am ' + msg);
+		// setting myID in this client
+		myID = msg;
+    //setTimeout(gg, 1000);
+    //console.log(myID);
+    //console.log(typeof(myID));
+		if (myID === 0)
+		  otherID = 1;
+		else
+		  otherID = 0;
+		if (myID === 0) {
+			$('#hud').text ('I am client 0')
+		} else {
+			$('#hud').text ('I am client 1')
+		}
+
+	});
+	socket.on ('update_status', function (status) {
+		//console.log (status)
+		for (let i = 0; i < status.length; i++) {
+		  meshes[status[i].id].material.visible = true;
+		  isTurn[status[i].id] = status[i].turn;
+		}
+
+	});
+
+	socket.on ('angle_now', function (data) {
+		console.log (data.angle + 'of ' + otherID);
+		theta[otherID] = data.angle + 0.63;
+	});
+
+  // server告知有 new_id登入
+	socket.on ('new_id', function(msg) {
+		console.log ('new kid in town: ' + msg);
+		otherID = msg;
+    //setTimeout(gg, 1000);
+	});
+  socket.on ('checkOK', function(time) {
+      setTimeout(gg, time);
+  	});
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////
+
+init();
+animate();
+
+////////////////////////////////////////////////////////////
+setInterval (
+  function () {
+  //console.log (myID);
+  if (myID === undefined) return;
+  console.log ('in sync ' + myID);
+  let data = {id: myID, angle: meshes[myID].rotation.y};
+  socket.emit ('angle_now', data);
+},16.6);//60 FPS
+///////////////////////////////////////////////////////////
+
+function init() {
+  //console.log("999  "+myID)
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+  var fv = document.getElementById('frontView')
+  renderer = new THREE.WebGLRenderer({
+      canvas: fv
+    });
+  renderer.setSize(ww, hh);
+  renderer.setClearColor(0x888888);
+  $("#container").append(renderer.domElement);
+
+  var wwL = $('#containerL').innerWidth();
+  var hhL = $('#containerL').innerHeight();
+  var mvl = document.getElementById('mirrorViewL');
+  rendererB = new THREE.WebGLRenderer({
+    canvas: mvl
+  });
+  rendererB.setSize(wwL, hhL);
+  rendererB.setClearColor(0x888888);
+
+  var wwR = $('#containerR').innerWidth();
+  var hhR = $('#containerR').innerHeight();
+  var mvr = document.getElementById('mirrorViewR');
+  rendererBR = new THREE.WebGLRenderer({
+    canvas: mvr
+  });
+  rendererBR.setSize(wwR, hhR);
+  rendererBR.setClearColor(0x888888);
+
+  var wwS = $("#speedMonitor").innerWidth();
+  var hhS = $("#speedMonitor").innerHeight();
+  //var fv = document.getElementById('speedMonitor')
+  rendererS = new THREE.WebGLRenderer();
+  rendererS.setSize(wwS, hhS);
+  rendererS.setClearColor(0xffffff);
+  $("#speedMonitor").append(rendererS.domElement);
+
+  var wwO = $("#oilMonitor").innerWidth();
+  var hhO = $("#oilMonitor").innerHeight();
+  //var fv = document.getElementById('speedMonitor')
+  rendererO = new THREE.WebGLRenderer();
+  rendererO.setSize(wwO, hhO);
+  rendererO.setClearColor(0xffffff);
+  $("#oilMonitor").append(rendererO.domElement);
+
+  renderTarget = new THREE.WebGLRenderTarget(
+   1024, 1024, {
+   minFilter: THREE.LinearFilter,
+   magFilter: THREE.NearestFilter,
+   format: THREE.RGBFormat
+  }
+);
+
+////////////////////////////////////////////////
+
+scene = new THREE.Scene();
+camera = new THREE.PerspectiveCamera(50, ww / hh, 1, 1000);
+camera.position.set(0, 200, 300);
+
+cameraB = new THREE.PerspectiveCamera(90, wwL / hhL, 1, 1000);
+cameraBR = new THREE.PerspectiveCamera(90, wwR / hhR, 1, 1000);
+cameraS = new THREE.PerspectiveCamera(90, wwS / hhS, 1, 1000);
+cameraS.position.z = 30;
+cameraO = new THREE.PerspectiveCamera(90, wwO / hhO, 1, 1000);
+cameraO.position.z = 30;
+
+sceneRTT = new THREE.Scene();
+cameraRTT = new THREE.OrthographicCamera (-10,10,10,-10, 0,20);
+plane = new THREE.Mesh (new THREE.PlaneGeometry(20,20),
+new THREE.MeshBasicMaterial({map:renderTarget.texture, side:THREE.DoubleSide}));
+sceneRTT.add (plane);
+plane.rotation.y = Math.PI;
+
+sceneS = new THREE.Scene();
+sceneO = new THREE.Scene();
+
+//car = new THREE.Mesh(new THREE.CircleGeometry(5, 20), new THREE.MeshBasicMaterial());
+//scene.add(car);
+
+var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+scene.add(gridXZ);
+//sceneS.add(gridXZ)
+
+let light = new THREE.DirectionalLight(0xffffff);
+ light.position.set(100, 300, 200);
+ scene.add(light);
+
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+window.addEventListener('resize', onWindowResize, false);
+/////////////
+omega = 0;
+
+fuel = 1000;
+fuelMax = fuel;
+
+let geometry = new THREE.Geometry();
+  for (var i = 0, alpha = 0; i <= 60; i++) {
+    alpha += Math.PI * 2 / 60;
+    geometry.vertices.push(new THREE.Vector3(R * Math.cos(alpha), 0, -R * Math.sin(alpha)));
+  }
+  var border = new THREE.Line(geometry, new THREE.LineBasicMaterial({
+    color: 0xffff00
+  }));
+  scene.add(border);
+
+let geometry2 = new THREE.Geometry();
+  for (var i = 0, alpha = 0; i <= 60; i++) {
+    alpha += Math.PI * 2 / 60;
+    geometry2.vertices.push(new THREE.Vector3(0.8 * R * Math.cos(alpha), 0, -0.8 * R * Math.sin(alpha)));
+  }
+  var border2 = new THREE.Line(geometry2, new THREE.LineDashedMaterial({
+    color: 0x00ffff,
+    dashSize: 20,
+    gapSize: 20
+  }));
+  scene.add(border2);
+  border2.computeLineDistances();
+  ////////////////////
+meshes[0] = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 10), new THREE.MeshLambertMaterial({
+  color: 'yellow'
+}));
+scene.add(meshes[0]);
+meshes[1] = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 10), new THREE.MeshLambertMaterial({
+  color: 'green'
+}));
+scene.add(meshes[1]);
+
+// keyboard = new KeyboardState();
+///////////////////////////////////////////////////////
+  clockk = new THREE.Mesh(new THREE.CircleGeometry(20, 32), new THREE.MeshBasicMaterial( { color: 0xffff00 } ));
+  sceneS.add(clockk);
+
+  pin = new THREE.Mesh(new THREE.PlaneGeometry(20, 1.2), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
+  sceneS.add(pin)
+  pin.position.x = -10
+
+  center = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), new THREE.MeshBasicMaterial( { color: 0xff0000, visible:false } ));
+  sceneS.add(center)
+  center.add(pin)
+  ///////////////////////////////////////////////////////////////////////////////
+  clockk2 = new THREE.Mesh(new THREE.CircleGeometry(20, 32), new THREE.MeshBasicMaterial( { color: 0xffff00 } ));
+  sceneO.add(clockk2);
+
+  pin2 = new THREE.Mesh(new THREE.PlaneGeometry(20, 1.2), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
+  sceneO.add(pin2)
+  pin2.position.x = -10
+
+  center2 = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), new THREE.MeshBasicMaterial( { color: 0xff0000, visible:false } ));
+  sceneO.add(center2)
+  center2.add(pin2)
+}
+
+$("#stepB").on('mousedown', function(e) {
+  console.log('mouse down')
+  step = true;
+  socket.emit("countup", myID);
+  $(this).css("background-color", "yellow");
+  }).on('mouseup', function(e) {
+  console.log('mouse up')
+  step = false;
+  socket.emit("countdown", myID);
+  $(this).css("background-color", "white");
+});
+
+$("#step").click(function() {
+  console.log ('step')
+  step = true;
+});
+
+$("#stop").click(function() {
+  console.log ('stop')
+  step = false;
+});
+
+function onWindowResize() {
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+  camera.aspect = ww / hh;
+  camera.updateProjectionMatrix();
+  renderer.setSize(ww, hh);
+
+  var wwL = $('#containerL').innerWidth();
+  var hhL = $('#containerL').innerHeight();
+  cameraB.aspect = wwL / hhL;
+  cameraB.updateProjectionMatrix();
+  rendererB.setSize(wwR, hhR);
+
+  var wwR = $('#containerR').innerWidth();
+  var hhR = $('#containerR').innerHeight();
+  cameraBR.aspect = wwR / hhR;
+  cameraBR.updateProjectionMatrix();
+  rendererBR.setSize(wwR, hhR);
+
+  var wwS = $("#speedMonitor").innerWidth();
+  var hhS = $("#speedMonitor").innerHeight();
+  cameraS.aspect = wwS / hhS;
+  cameraS.updateProjectionMatrix();
+  rendererS.setSize(wwS, hhS);
+
+  var wwO = $("#oilMonitor").innerWidth();
+  var hhO = $("#oilMonitor").innerHeight();
+  cameraO.aspect = wwO / hhO;
+  cameraO.updateProjectionMatrix();
+  rendererO.setSize(wwO, hhO);
+}
+
+function animate() {
+/*
+  keyboard.update();
+  if (keyboard.pressed("S"))
+    step = true;
+  else
+    step = false;
+*/
+//console.log(step)
+
+  //thetaa += 0.01;
+  //console.log(myID);
+  if (myID !== undefined) {
+    meshes[myID].position.set(R[myID] * Math.cos(theta[myID]), 0, -R[myID] * Math.sin(theta[myID]));
+    meshes[myID].rotation.y = theta[myID];
+  }
+
+  if (otherID !== undefined) {
+  meshes[otherID].position.set(R[otherID] * Math.cos(theta[otherID] - 0.63), 0, -R[otherID] * Math.sin(theta[otherID] - 0.63));
+  meshes[otherID].rotation.y = theta[otherID] - 0.63;
+  }
+  cameraB.position.set(0.9 * R[myID] * Math.cos(theta[myID] + 0.1), 1, -0.9 * R[myID] * Math.sin(theta[myID] + 0.1));
+
+  cameraB.lookAt(0.9 * R[myID] * Math.cos(theta[myID] - 0.21), 0, -0.9 * R[myID] * Math.sin(theta[myID] - 0.21))
+
+  cameraBR.position.set(1.1 * R[myID] * Math.cos(theta[myID] + 0.1), 1, -1.1 * R[myID] * Math.sin(theta[myID] + 0.1));
+
+  cameraBR.lookAt(1.1 * R[myID] * Math.cos(theta[myID] - 0.21), 0, -1.1 * R[myID] * Math.sin(theta[myID] - 0.21))
+
+  camera.position.set(R[myID] * Math.cos(theta[myID] - 0.02) , 5, -R[myID] * Math.sin(theta[myID] - 0.02));
+  camera.lookAt(R[myID]*Math.cos(theta[myID]+0.21),0,-R[myID]*Math.sin(theta[myID]+0.21))
+
+  //cameraS.lookAt(clockk);
+
+
+  requestAnimationFrame(animate);
+  render();
+
+  dt = clock.getDelta();
+  if (engine[myID] && count == 0) {
+    theta[myID] += omega * dt;
+    //car.position.set(R * Math.cos(theta), 0, -R * Math.sin(theta))
+
+    if (step) {
+      run = 0.5 - omega*4.2;
+      omega += 0.01;
+      fuel -= 0.3;
+      if (omega > 1) omega = 1;
+    } else {
+      run = 0.5 - omega*4.2;
+      fuel -= 0.03;
+      omega -= 0.002;
+      if (omega < 0) omega = 0;
+      }
+  }
+
+  if (fuel < 0) {
+    engine = false;
+    fuel = 0;
+    omega = 0;
+  }
+  $('#fuel').text(fuel.toFixed(2));
+  $('#fastslow').text((omega*200).toFixed(2));
+
+  //run = -theta;
+  center.rotation.z = run;
+  if(run > 0.5) run = 0.5;
+  if(run < -3.7) run = -3.7;
+
+  center2.rotation.z = run2;
+  run2 = 0.5 - fuel/fuelMax*4.2;
+
+  if(myID !== undefined && otherID !== undefined && oneTime === 0){
+      oneTime++;
+      socket.emit ('loadOK', myID);
+    }
+}
+function render() {
+  renderer.render(scene, camera);
+
+  rendererB.setRenderTarget (renderTarget);
+	rendererB.render (scene, cameraB);
+  rendererB.setRenderTarget (null);
+  rendererB.render(sceneRTT, cameraRTT);
+
+  rendererBR.setRenderTarget (renderTarget);
+	rendererBR.render (scene, cameraBR);
+  rendererBR.setRenderTarget (null);
+  rendererBR.render(sceneRTT, cameraRTT);
+
+  rendererS.render(sceneS, cameraS);
+  rendererO.render(sceneO, cameraO);
+}
+
+function gg(){
+  if(count > 0 ){
+    $('#hud').text(count);
+    //alert(count)
+    console.log(count);
+  	--count;
+  	setTimeout(gg, 1000);
+  }
+  else {
+  	$('#hud').text("Go!!!");
+    //alert("Go!!!");
+    engine[0] = true;
+    engine[1] = true;
+    console.log(myID);
+	}
+}
+
+</script>
+</body>
+
+</html>
