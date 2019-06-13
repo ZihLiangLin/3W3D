@@ -177,10 +177,12 @@ function init() {
 	};
 	var onError = function(xhr) {};
 	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.setPath('HW6/');
 	mtlLoader.load('pepperoni_pizza.mtl', function(materials) {
 		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
+		objLoader.setPath('HW6/');
 		objLoader.load('pepperoni_pizza.obj', function(object) {
 			pizza.add(unitize (object, .5));
 			pizza.visible = false;
@@ -203,10 +205,12 @@ function init() {
 	});
 
 	//model hamburger
+	mtlLoader.setPath('HW6/');
 	mtlLoader.load('Hamburger.mtl', function(materials) {
 		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
+		objLoader.setPath('HW6/');
 		objLoader.load('Hamburger.obj', function(object) {
 			hamburger.add(unitize (object, .5));
 			hamburger.visible = false;
@@ -229,10 +233,12 @@ function init() {
 	});
 
 	//model ff
+	mtlLoader.setPath('HW6/');
 	mtlLoader.load('french_fries.mtl', function(materials) {
 		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
+		objLoader.setPath('HW6/');
 		objLoader.load('french_fries.obj', function(object) {
 			ff.add(unitize (object, .5));
 			ff.visible = false;
@@ -255,10 +261,12 @@ function init() {
 	});
 
 	//model pasta
+	mtlLoader.setPath('HW6/');
 	mtlLoader.load('Pasta.mtl', function(materials) {
 		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
+		objLoader.setPath('HW6/');
 		objLoader.load('Pasta.obj', function(object) {
 			pasta.add(unitize (object, .6));
 			pasta.position.y = .05;
