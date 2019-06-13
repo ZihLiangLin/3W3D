@@ -87,10 +87,10 @@ function init() {
   geometry.computeFaceNormals();
   geometry.computeVertexNormals();
 
-  texture_pizza = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/pepperoni_pizza.png'), transparent: true}));
-	texture_hamburger = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/Hamburger.png'), transparent: true}));
-	texture_ff = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/french_fries.png'), transparent: true}));
-	texture_pasta = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/Pasta.png'), transparent: true}));
+  texture_pizza = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/pepperoni_pizza.PNG'), transparent: true}));
+	texture_hamburger = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/Hamburger.PNG'), transparent: true}));
+	texture_ff = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/french_fries.PNG'), transparent: true}));
+	texture_pasta = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/Pasta.PNG'), transparent: true}));
 
 	texture_pizza.position.set(-9, 4.5, 0);
 	texture_hamburger.position.set(-9, 1.5, 0);
