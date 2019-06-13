@@ -179,7 +179,7 @@ function init() {
 	var mtlLoader = new THREE.MTLLoader();
 	mtlLoader.setPath('model/');
 	mtlLoader.load('pepperoni_pizza.mtl', function(materials) {
-		materials =  new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/model/pizzaTxt.png')});
+		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
 		objLoader.setPath('model/');
@@ -207,7 +207,7 @@ function init() {
 	//model hamburger
 	mtlLoader.setPath('model/');
 	mtlLoader.load('Hamburger.mtl', function(materials) {
-		materials = new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/model/Hamburger_BaseColor.png')});
+		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
 		objLoader.setPath('model/');
@@ -263,7 +263,6 @@ function init() {
 	//model pasta
 	mtlLoader.setPath('model/');
 	mtlLoader.load('Pasta.mtl', function(materials) {
-
 		materials.preload();
 		var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
