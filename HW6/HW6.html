@@ -92,10 +92,10 @@ function init() {
 	texture_ff = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/french_fries.PNG'), transparent: true}));
 	texture_pasta = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('/3W3D/HW6/Pasta.PNG'), transparent: true}));
 
-	texture_pizza.position.set(-9, 4.5, 0);
-	texture_hamburger.position.set(-9, 1.5, 0);
-	texture_ff.position.set(-9, -1.5, 0);
-	texture_pasta.position.set(-9, -4.5, 0);
+	texture_pizza.position.set(9, 4.5, 0);
+	texture_hamburger.position.set(9, 1.5, 0);
+	texture_ff.position.set(9, -1.5, 0);
+	texture_pasta.position.set(9, -4.5, 0);
 
 	sceneHUD.add(texture_pizza);
 	sceneHUD.add(texture_hamburger);
