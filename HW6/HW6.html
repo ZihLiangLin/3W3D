@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" charset="utf-8">
+<style>
+	body {
+    margin: 0px;
+		overflow: hidden;
+	}
+</style>
+<body>
+	<script src="three.min.js"></script>
+	<script src="stats.min.js"></script>
+	<script src="https://threejs.org/examples/js/loaders/MTLLoader.js"></script>
+	<script src="https://threejs.org/examples/js/loaders/OBJLoader.js"></script>
+	<script src="ar.min.js"></script>
+<script>
+var renderer, scene, camera;
+var sceneHUD, cameraHUD;
+var stats;
+var markerRoot;
+var markerHiro;
+var arToolKitSource, arToolKitContext;
+var texture_pizza, texture_hamburger, texture_ff, texture_pasta;
+var raycaster, pickables;
+var pizza = new THREE.Object3D();
+var hamburger = new THREE.Object3D();
+var ff = new THREE.Object3D();
+var pasta = new THREE.Object3D();
+var angle = 0;
+
+init();
+animate();
+
+function init() {
+	let _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+	console.log ('iOS: ' + _iOSDevice)
+
+	renderer	= new THREE.WebGLRenderer({
+		antialias	: true,
+		alpha: true
+	});
+	renderer.setClearColor(0x333333, 0);
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	// for multi-pass rendering
+	renderer.autoClear = false;
+
+	//renderer shadow
+	renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+	raycaster = new THREE.Raycaster();
+	pickables = [];
+	// init scene and camera
+	scene	= new THREE.Scene();
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	sceneHUD = new THREE.Scene();
+	cameraHUD = new THREE.OrthographicCamera (-10,10,10,-10, -10,10);
+
+	////////////////////////////////////
+	var loader = new THREE.TextureLoader();
+  loader.setCrossOrigin ('');
+	///////////// 選取按鈕 /////////////
+	var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+		new THREE.Vector3(-1, 1, 0),
+    new THREE.Vector3(-1, -1, 0),
+    new THREE.Vector3(1, -1, 0),
+    new THREE.Vector3(1, 1, 0)
+  );
+  var face = new THREE.Face3(0, 1, 2);
+  face.materialIndex = 0;
+  geometry.faces.push(face);
+  face = new THREE.Face3(0, 2, 3);
+  face.materialIndex = 0;
+  geometry.faces.push(face);
+
+	geometry.faceVertexUvs[0].push([new THREE.Vector2(0, 1), new THREE.Vector2(0, 0), new THREE.Vector2(1, 0)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0, 1), new THREE.Vector2(1, 0), new THREE.Vector2(1, 1)]);
+
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  texture_pizza = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('pepperoni_pizza.png'), transparent: true}));
+	texture_hamburger = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('Hamburger.png'), transparent: true}));
+	texture_ff = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('french_fries.png'), transparent: true}));
+	texture_pasta = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: loader.load('Pasta.png'), transparent: true}));
+
+	texture_pizza.position.set(-9, 4.5, 0);
+	texture_hamburger.position.set(-9, 1.5, 0);
+	texture_ff.position.set(-9, -1.5, 0);
+	texture_pasta.position.set(-9, -4.5, 0);
+
+	sceneHUD.add(texture_pizza);
+	sceneHUD.add(texture_hamburger);
+	sceneHUD.add(texture_ff);
+	sceneHUD.add(texture_pasta);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+	arToolkitSource = new THREEx.ArToolkitSource({
+		sourceType : 'webcam'
+	})
+	arToolkitSource.init(function onReady(){
+		onResize()
+	})
+
+	// handle resize
+	window.addEventListener('resize', function(){
+		onResize()
+	})
+	function onResize(){
+		arToolkitSource.onResizeElement();
+		arToolkitSource.copyElementSizeTo(renderer.domElement);
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)
+		}
+	}
+	////////////////////////////////////////////////////////////////////////////////
+	//          initialize arToolkitContext
+	////////////////////////////////////////////////////////////////////////////////
+
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	// initialize it
+	arToolkitContext.init(function onCompleted(){
+		// copy projection matrix to camera
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+	markerRoot = new THREE.Group()
+	scene.add(markerRoot)
+	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type: 'pattern',
+		patternUrl: 'patt.hiro'
+	})
+
+	markerRoot.add( new THREE.AmbientLight( 0xffffff ) );
+
+	var light = new THREE.DirectionalLight( 'white', 1 );
+	light.position.set( 25, 100, -25 );
+	markerRoot.add( light );
+
+	light.castShadow = true;
+  light.shadow.mapSize.set(1024,1024);
+	light.shadow.camera.near = 50;
+	light.shadow.camera.far = 500;
+
+	var gridXZ = new THREE.GridHelper(100, 10, 'red', 'white');
+  //markerRoot.add(unitize (gridXZ, 1));
+
+	var axes = new THREE.AxisHelper(100);
+  //markerRoot.add(unitize (axes, 1));
+
+	//Marker hidden
+	var marker_hidden = markerHide();
+	markerRoot.add(marker_hidden);
+
+	// model pizza
+	var onProgress = function(xhr) {
+		if (xhr.lengthComputable) {
+			var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log(Math.round(percentComplete, 2) + '% downloaded');
+		}
+	};
+	var onError = function(xhr) {};
+	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.load('pepperoni_pizza.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.load('pepperoni_pizza.obj', function(object) {
+			pizza.add(unitize (object, .5));
+			pizza.visible = false;
+			pizza.traverse (
+			 function (mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+					}
+				}
+			);
+			markerRoot.add(pizza);
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+			});
+		}, onProgress, onError);
+	});
+
+	//model hamburger
+	mtlLoader.load('Hamburger.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.load('Hamburger.obj', function(object) {
+			hamburger.add(unitize (object, .5));
+			hamburger.visible = false;
+			hamburger.traverse (
+			 function (mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+					}
+				}
+			);
+			markerRoot.add(hamburger);
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+			});
+		}, onProgress, onError);
+	});
+
+	//model ff
+	mtlLoader.load('french_fries.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.load('french_fries.obj', function(object) {
+			ff.add(unitize (object, .5));
+			ff.visible = false;
+			ff.traverse (
+			 function (mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+					}
+				}
+			);
+			markerRoot.add(ff);
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+			});
+		}, onProgress, onError);
+	});
+
+	//model pasta
+	mtlLoader.load('Pasta.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.load('Pasta.obj', function(object) {
+			pasta.add(unitize (object, .6));
+			pasta.position.y = .05;
+			pasta.visible = false;
+			pasta.traverse (
+			 function (mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+					}
+				}
+			);
+			markerRoot.add(pasta);
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+			});
+		}, onProgress, onError);
+	});
+
+	//FPS
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	//iOS touch介面?
+	if (_iOSDevice)
+		window.addEventListener('touchstart', onTouchStart, false)
+	else
+		window.addEventListener ('mousedown', onMouseDown, false);
+}
+
+
+function animate() {
+	requestAnimationFrame (animate);
+
+	if( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement )
+
+	///////////////////////////////////////////
+	angle += 0.01;
+	pizza.rotation.y = -angle;
+	hamburger.rotation.y = -angle;
+	ff.rotation.y = -angle;
+	pasta.rotation.y = -angle;
+
+	texture_pizza.material.visible = markerRoot.visible;
+	texture_hamburger.material.visible = markerRoot.visible;
+	texture_ff.material.visible = markerRoot.visible;
+	texture_pasta.material.visible = markerRoot.visible;
+
+	renderer.clear();
+	renderer.render (scene, camera);
+	renderer.render (sceneHUD, cameraHUD);
+	stats.update();
+}
+
+function onTouchStart (event) {
+	console.log ('in touch start');
+	if(event.touches.length == 1) {
+
+		event.preventDefault();
+		let touchX = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
+		let touchY = -(event.touches[0].pageY / window.innerHeight) * 2 + 1;
+
+		if(markerRoot.visible === true){
+			if(touchX < 1 && touchX > 0.80 && touchY < 0.74 && touchY > 0.54){
+				pizza.visible = true;
+				hamburger.visible = false;
+				ff.visible = false;
+				pasta.visible = false;
+				texture_pizza.material.opacity = .5;
+				texture_hamburger.material.opacity = 1;
+				texture_ff.material.opacity = 1;
+				texture_pasta.material.opacity = 1;
+	  	}
+			if(touchX < 1 && touchX > 0.80 && touchY < 0.34 && touchY > 0.06){
+				pizza.visible = false;
+				hamburger.visible = true;
+				ff.visible = false;
+				pasta.visible = false;
+				texture_pizza.material.opacity = 1;
+				texture_hamburger.material.opacity = .5;
+				texture_ff.material.opacity = 1;
+				texture_pasta.material.opacity = 1;
+	  	}
+			if(touchX < 1 && touchX > 0.80 && touchY < -0.06 && touchY > -0.34){
+				pizza.visible = false;
+				hamburger.visible = false;
+				ff.visible = true;
+				pasta.visible = false;
+				texture_pizza.material.opacity = 1;
+				texture_hamburger.material.opacity = 1;
+				texture_ff.material.opacity = .5;
+				texture_pasta.material.opacity = 1;
+	  	}
+			if(touchX < 1 && touchX > 0.80 && touchY < -0.54 && touchY > -0.74){
+				pizza.visible = false;
+				hamburger.visible = false;
+				ff.visible = false;
+				pasta.visible = true;
+				texture_pizza.material.opacity = 1;
+				texture_hamburger.material.opacity = 1;
+				texture_ff.material.opacity = 1;
+				texture_pasta.material.opacity = .5;
+	  	}
+		}
+	}
+}
+
+function onMouseDown (event) {
+	event.preventDefault();
+	let mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+	let mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+	if(markerRoot.visible === true){
+		if(mouseX < 1 && mouseX > 0.80 && mouseY < 0.84 && mouseY > 0.54){
+			pizza.visible = true;
+			hamburger.visible = false;
+			ff.visible = false;
+			pasta.visible = false;
+			texture_pizza.material.opacity = .5;
+			texture_hamburger.material.opacity = 1;
+			texture_ff.material.opacity = 1;
+			texture_pasta.material.opacity = 1;
+  	}
+		if(mouseX < 1 && mouseX > 0.80 && mouseY < 0.38 && mouseY > 0.08){
+			pizza.visible = false;
+			hamburger.visible = true;
+			ff.visible = false;
+			pasta.visible = false;
+			texture_pizza.material.opacity = 1;
+			texture_hamburger.material.opacity = .5;
+			texture_ff.material.opacity = 1;
+			texture_pasta.material.opacity = 1;
+  	}
+		if(mouseX < 1 && mouseX > 0.80 && mouseY < -0.08 && mouseY > -0.38){
+			pizza.visible = false;
+			hamburger.visible = false;
+			ff.visible = true;
+			pasta.visible = false;
+			texture_pizza.material.opacity = 1;
+			texture_hamburger.material.opacity = 1;
+			texture_ff.material.opacity = .5;
+			texture_pasta.material.opacity = 1;
+  	}
+		if(mouseX < 1 && mouseX > 0.80 && mouseY < -0.54 && mouseY > -0.84){
+			pizza.visible = false;
+			hamburger.visible = false;
+			ff.visible = false;
+			pasta.visible = true;
+			texture_pizza.material.opacity = 1;
+			texture_hamburger.material.opacity = 1;
+			texture_ff.material.opacity = 1;
+			texture_pasta.material.opacity = .5;
+  	}
+	}
+}
+
+function markerHide(){
+	var plane = new THREE.Object3D();
+	var material = new THREE.MeshStandardMaterial({color: 0xdddddd});
+	var geometry = new THREE.PlaneGeometry(1.1, 1.1); //marker顯示誤差會沒辦法隱藏全部，因此設大一點比較保險。
+	var mesh = new THREE.Mesh(geometry, material);
+	mesh.rotation.x = -Math.PI/2;
+	mesh.receiveShadow = true;
+	plane.add (mesh);
+	return plane;
+}
+
+function unitize (object, targetSize) { //把物品大小跟marker成倍數關係 targetSize=1--->等大
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+	// uniform scaling according to objSize
+	var objSize = Math.max (size.x, size.y, size.z);
+	var scaleSet = targetSize/objSize;
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	//object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	return theObject;
+}
+</script>
+</body>
