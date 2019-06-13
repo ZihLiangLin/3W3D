@@ -185,6 +185,7 @@ function init() {
 		objLoader.setPath('model/');
 		objLoader.load('pepperoni_pizza.obj', function(object) {
 			pizza.add(unitize (object, .5));
+			pizza.position.y = .05;
 			pizza.visible = false;
 			pizza.traverse (
 			 function (mesh) {
@@ -213,6 +214,7 @@ function init() {
 		objLoader.setPath('model/');
 		objLoader.load('Hamburger.obj', function(object) {
 			hamburger.add(unitize (object, .5));
+			hamburger.position.y = .1;
 			hamburger.visible = false;
 			hamburger.traverse (
 			 function (mesh) {
